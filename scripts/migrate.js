@@ -4,7 +4,7 @@ const fs = require('fs');
 
 // Windows için PostgreSQL yolları
 const windowsPaths = [
-    'C:\\Program Files\\PostgreSQL\\15\\bin\\psql.exe',
+    'C:\\Program Files\\PostgreSQL\\17\\bin\\psql.exe',
     'C:\\Program Files\\PostgreSQL\\14\\bin\\psql.exe',
     'C:\\Program Files\\PostgreSQL\\13\\bin\\psql.exe',
     'C:\\Program Files\\PostgreSQL\\12\\bin\\psql.exe',

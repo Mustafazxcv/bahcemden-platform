@@ -184,7 +184,186 @@ const login = async (req, res) => {
     }
 };
 
+// Şifre değiştirme
+const changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword, confirmPassword } = req.body;
+        const userId = req.user.userId;
+
+        // Gerekli alanları kontrol et
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            return res.status(400).json({
+                error: 'Tüm alanlar zorunludur'
+            });
+        }
+
+        // Yeni şifre ve tekrarı eşleşiyor mu kontrol et
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({
+                error: 'Yeni şifreler eşleşmiyor'
+            });
+        }
+
+        // Şifre uzunluğunu kontrol et
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                error: 'Yeni şifre en az 6 karakter olmalıdır'
+            });
+        }
+
+        // Kullanıcıyı bul
+        const userResult = await pool.query(
+            'SELECT password FROM users WHERE id = $1',
+            [userId]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({
+                error: 'Kullanıcı bulunamadı'
+            });
+        }
+
+        const user = userResult.rows[0];
+
+        // Mevcut şifreyi kontrol et
+        const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+        if (!isCurrentPasswordValid) {
+            return res.status(401).json({
+                error: 'Mevcut şifre yanlış'
+            });
+        }
+
+        // Yeni şifre eski şifre ile aynı mı kontrol et
+        const isSamePassword = await bcrypt.compare(newPassword, user.password);
+        if (isSamePassword) {
+            return res.status(400).json({
+                error: 'Yeni şifre mevcut şifre ile aynı olamaz'
+            });
+        }
+
+        // Yeni şifreyi hashle
+        const saltRounds = 12;
+        const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+
+        // Şifreyi güncelle
+        await pool.query(
+            'UPDATE users SET password = $1 WHERE id = $2',
+            [hashedNewPassword, userId]
+        );
+
+        res.json({
+            message: 'Şifre başarıyla değiştirildi'
+        });
+
+    } catch (error) {
+        console.error('Şifre değiştirme hatası:', error);
+        res.status(500).json({
+            error: 'Sunucu hatası'
+        });
+    }
+};
+
+// E-posta değiştirme
+const changeEmail = async (req, res) => {
+    try {
+        const { newEmail, password } = req.body;
+        const userId = req.user.userId;
+
+        // Gerekli alanları kontrol et
+        if (!newEmail || !password) {
+            return res.status(400).json({
+                error: 'E-posta ve şifre zorunludur'
+            });
+        }
+
+        // E-posta formatını kontrol et
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(newEmail)) {
+            return res.status(400).json({
+                error: 'Geçerli bir e-posta adresi giriniz'
+            });
+        }
+
+        // Kullanıcıyı bul
+        const userResult = await pool.query(
+            'SELECT password, email FROM users WHERE id = $1',
+            [userId]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({
+                error: 'Kullanıcı bulunamadı'
+            });
+        }
+
+        const user = userResult.rows[0];
+
+        // Şifreyi kontrol et
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                error: 'Şifre yanlış'
+            });
+        }
+
+        // Yeni e-posta mevcut e-posta ile aynı mı kontrol et
+        if (newEmail.toLowerCase() === user.email.toLowerCase()) {
+            return res.status(400).json({
+                error: 'Yeni e-posta mevcut e-posta ile aynı olamaz'
+            });
+        }
+
+        // E-posta adresinin başka bir kullanıcı tarafından kullanılıp kullanılmadığını kontrol et
+        const existingEmailResult = await pool.query(
+            'SELECT id FROM users WHERE email = $1 AND id != $2',
+            [newEmail.toLowerCase(), userId]
+        );
+
+        if (existingEmailResult.rows.length > 0) {
+            return res.status(409).json({
+                error: 'Bu e-posta adresi zaten kullanılıyor'
+            });
+        }
+
+        // E-postayı güncelle
+        await pool.query(
+            'UPDATE users SET email = $1 WHERE id = $2',
+            [newEmail.toLowerCase(), userId]
+        );
+
+        // Güncellenmiş kullanıcı bilgilerini al
+        const updatedUserResult = await pool.query(
+            'SELECT id, first_name, last_name, username, email, phone, user_type, created_at FROM users WHERE id = $1',
+            [userId]
+        );
+
+        const updatedUser = updatedUserResult.rows[0];
+
+        res.json({
+            message: 'E-posta adresi başarıyla değiştirildi',
+            user: {
+                id: updatedUser.id,
+                firstName: updatedUser.first_name,
+                lastName: updatedUser.last_name,
+                username: updatedUser.username,
+                email: updatedUser.email,
+                phone: updatedUser.phone,
+                userType: updatedUser.user_type,
+                createdAt: updatedUser.created_at
+            }
+        });
+
+    } catch (error) {
+        console.error('E-posta değiştirme hatası:', error);
+        res.status(500).json({
+            error: 'Sunucu hatası'
+        });
+    }
+};
+
 module.exports = {
     register,
-    login
+    login,
+    changePassword,
+    changeEmail
 };

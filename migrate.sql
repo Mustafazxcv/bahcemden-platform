@@ -39,5 +39,150 @@ CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 CREATE INDEX IF NOT EXISTS idx_users_user_type ON users(user_type);
 CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
 
+-- Certificates tablosu oluşturma
+CREATE TABLE IF NOT EXISTS certificates (
+    id SERIAL PRIMARY KEY,
+    farmer_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    certificate_name VARCHAR(200) NOT NULL,
+    file_info JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Certificates tablosu için index'ler
+CREATE INDEX IF NOT EXISTS idx_certificates_farmer_id ON certificates(farmer_id);
+CREATE INDEX IF NOT EXISTS idx_certificates_created_at ON certificates(created_at);
+
+-- Messages tablosu oluşturma
+CREATE TABLE IF NOT EXISTS messages (
+    id SERIAL PRIMARY KEY,
+    sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    receiver_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Messages tablosu için index'ler
+CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_messages_receiver_id ON messages(receiver_id);
+CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
+
+-- Farms tablosu oluşturma
+CREATE TABLE IF NOT EXISTS farms (
+    id SERIAL PRIMARY KEY,
+    farmer_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    farm_name VARCHAR(200) NOT NULL,
+    description TEXT NOT NULL,
+    location VARCHAR(200) NOT NULL,
+    area DECIMAL(10,2) NOT NULL,
+    area_unit VARCHAR(20) NOT NULL,
+    contact_info TEXT,
+    additional_info TEXT,
+    images_info JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Farms tablosu için index'ler
+CREATE INDEX IF NOT EXISTS idx_farms_farmer_id ON farms(farmer_id);
+CREATE INDEX IF NOT EXISTS idx_farms_location ON farms(location);
+CREATE INDEX IF NOT EXISTS idx_farms_area ON farms(area);
+CREATE INDEX IF NOT EXISTS idx_farms_created_at ON farms(created_at);
+
+-- Farms tablosu için updated_at trigger
+CREATE TRIGGER update_farms_updated_at
+    BEFORE UPDATE ON farms
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Inventory items tablosu oluşturma
+CREATE TABLE IF NOT EXISTS inventory_items (
+    id SERIAL PRIMARY KEY,
+    farmer_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    item_name VARCHAR(200) NOT NULL,
+    category VARCHAR(100) NOT NULL,
+    quantity DECIMAL(15,3) NOT NULL,
+    unit VARCHAR(20) NOT NULL,
+    description TEXT,
+    purchase_date DATE,
+    expiry_date DATE,
+    cost DECIMAL(15,2),
+    supplier VARCHAR(200),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Inventory items tablosu için index'ler
+CREATE INDEX IF NOT EXISTS idx_inventory_items_farmer_id ON inventory_items(farmer_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_items_category ON inventory_items(category);
+CREATE INDEX IF NOT EXISTS idx_inventory_items_item_name ON inventory_items(item_name);
+CREATE INDEX IF NOT EXISTS idx_inventory_items_created_at ON inventory_items(created_at);
+
+-- Inventory items tablosu için updated_at trigger
+CREATE TRIGGER update_inventory_items_updated_at
+    BEFORE UPDATE ON inventory_items
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Mevcut tabloları güncelle (eğer varsa)
+ALTER TABLE inventory_items ALTER COLUMN quantity TYPE DECIMAL(15,3);
+ALTER TABLE inventory_items ALTER COLUMN cost TYPE DECIMAL(15,2);
+
+-- Listings tablosu oluşturma
+CREATE TABLE IF NOT EXISTS listings (
+    id SERIAL PRIMARY KEY,
+    farmer_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    product_type VARCHAR(200) NOT NULL,
+    quantity DECIMAL(15,3) NOT NULL,
+    unit VARCHAR(20) NOT NULL,
+    price DECIMAL(15,2) NOT NULL,
+    harvest_date DATE NOT NULL,
+    description TEXT,
+    location VARCHAR(200),
+    contact_info TEXT,
+    is_active BOOLEAN DEFAULT true,
+    images_info JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Listings tablosu için index'ler
+CREATE INDEX IF NOT EXISTS idx_listings_farmer_id ON listings(farmer_id);
+CREATE INDEX IF NOT EXISTS idx_listings_product_type ON listings(product_type);
+CREATE INDEX IF NOT EXISTS idx_listings_price ON listings(price);
+CREATE INDEX IF NOT EXISTS idx_listings_harvest_date ON listings(harvest_date);
+CREATE INDEX IF NOT EXISTS idx_listings_location ON listings(location);
+CREATE INDEX IF NOT EXISTS idx_listings_is_active ON listings(is_active);
+CREATE INDEX IF NOT EXISTS idx_listings_created_at ON listings(created_at);
+
+-- Listings tablosu için updated_at trigger
+CREATE TRIGGER update_listings_updated_at
+    BEFORE UPDATE ON listings
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Offers tablosu oluşturma
+CREATE TABLE IF NOT EXISTS offers (
+    id SERIAL PRIMARY KEY,
+    listing_id INTEGER REFERENCES listings(id) ON DELETE CASCADE,
+    buyer_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    offer_price DECIMAL(15,2) NOT NULL,
+    message TEXT,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Offers tablosu için index'ler
+CREATE INDEX IF NOT EXISTS idx_offers_listing_id ON offers(listing_id);
+CREATE INDEX IF NOT EXISTS idx_offers_buyer_id ON offers(buyer_id);
+CREATE INDEX IF NOT EXISTS idx_offers_status ON offers(status);
+CREATE INDEX IF NOT EXISTS idx_offers_created_at ON offers(created_at);
+
+-- Offers tablosu için updated_at trigger
+CREATE TRIGGER update_offers_updated_at
+    BEFORE UPDATE ON offers
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- Başarı mesajı
 SELECT 'Veritabanı başarıyla oluşturuldu!' as message;
