@@ -21,13 +21,13 @@ router.get('/my', authenticateToken, checkUserActive, getMyOffers);
 // Çiftçinin aldığı teklifleri listele (belirli ilan için)
 router.get('/listing/:listingId', authenticateToken, checkUserActive, getListingOffers);
 
-// Teklif detayı
-router.get('/:offerId', authenticateToken, checkUserActive, getOfferById);
+// Teklif detayı (offerId sadece sayısal)
+router.get('/:offerId(\\d+)', authenticateToken, checkUserActive, getOfferById);
 
-// Teklif onaylama/reddetme (sadece çiftçi)
-router.put('/:offerId/respond', authenticateToken, checkUserActive, respondToOffer);
+// Teklif onaylama/reddetme (sadece çiftçi) (offerId sadece sayısal)
+router.put('/:offerId(\\d+)/respond', authenticateToken, checkUserActive, respondToOffer);
 
-// Teklif silme (sadece alıcı)
-router.delete('/:offerId', authenticateToken, checkUserActive, deleteOffer);
+// Teklif silme (sadece alıcı) (offerId sadece sayısal)
+router.delete('/:offerId(\\d+)', authenticateToken, checkUserActive, deleteOffer);
 
 module.exports = router;

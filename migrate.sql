@@ -184,5 +184,54 @@ CREATE TRIGGER update_offers_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+-- Ratings tablosu oluşturma (yıldızlama sistemi)
+CREATE TABLE IF NOT EXISTS ratings (
+    id SERIAL PRIMARY KEY,
+    listing_id INTEGER REFERENCES listings(id) ON DELETE CASCADE,
+    email VARCHAR(100) NOT NULL,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(listing_id, email) -- Her e-posta bir ürüne sadece 1 kez yıldız verebilir
+);
+
+-- Ratings tablosu için index'ler
+CREATE INDEX IF NOT EXISTS idx_ratings_listing_id ON ratings(listing_id);
+CREATE INDEX IF NOT EXISTS idx_ratings_email ON ratings(email);
+CREATE INDEX IF NOT EXISTS idx_ratings_created_at ON ratings(created_at);
+
+-- Orders tablosu oluşturma (sipariş sistemi)
+CREATE TABLE IF NOT EXISTS orders (
+    id SERIAL PRIMARY KEY,
+    listing_id INTEGER REFERENCES listings(id) ON DELETE CASCADE,
+    buyer_email VARCHAR(100) NOT NULL,
+    buyer_id INTEGER REFERENCES users(id) ON DELETE SET NULL, -- NULL olabilir (misafir sipariş)
+    quantity DECIMAL(15,3) NOT NULL,
+    unit_price DECIMAL(15,2) NOT NULL,
+    total_price DECIMAL(15,2) NOT NULL,
+    payment_method VARCHAR(50) NOT NULL CHECK (payment_method IN ('credit_card', 'bank_transfer', 'cash_on_delivery', 'digital_wallet')),
+    payment_status VARCHAR(20) DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'failed', 'refunded')),
+    order_status VARCHAR(20) DEFAULT 'pending' CHECK (order_status IN ('pending', 'confirmed', 'preparing', 'shipped', 'delivered', 'cancelled')),
+    delivery_address TEXT NOT NULL,
+    delivery_phone VARCHAR(20) NOT NULL,
+    delivery_notes TEXT,
+    farmer_notes TEXT, -- Çiftçi notları
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Orders tablosu için index'ler
+CREATE INDEX IF NOT EXISTS idx_orders_listing_id ON orders(listing_id);
+CREATE INDEX IF NOT EXISTS idx_orders_buyer_email ON orders(buyer_email);
+CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON orders(buyer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON orders(payment_status);
+CREATE INDEX IF NOT EXISTS idx_orders_order_status ON orders(order_status);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
+
+-- Orders tablosu için updated_at trigger
+CREATE TRIGGER update_orders_updated_at
+    BEFORE UPDATE ON orders
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- Başarı mesajı
 SELECT 'Veritabanı başarıyla oluşturuldu!' as message;

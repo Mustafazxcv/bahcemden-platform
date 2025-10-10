@@ -410,13 +410,19 @@ const getMyListings = async (req, res) => {
 const getListingById = async (req, res) => {
     try {
         const { id } = req.params;
+        
+        // Parametre doğrulama: id sayısal olmalı
+        const idNum = parseInt(id, 10);
+        if (!Number.isInteger(idNum) || idNum <= 0) {
+            return res.status(400).json({ error: 'Geçersiz ilan ID' });
+        }
 
         const result = await pool.query(
             `SELECT l.*, u.first_name, u.last_name, u.username, u.phone
              FROM listings l
              JOIN users u ON l.farmer_id = u.id
              WHERE l.id = $1 AND u.is_active = true`,
-            [id]
+            [idNum]
         );
 
         if (result.rows.length === 0) {

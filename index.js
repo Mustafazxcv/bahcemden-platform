@@ -12,6 +12,10 @@ const farmRoutes = require('./routes/farms');
 const inventoryRoutes = require('./routes/inventory');
 const listingRoutes = require('./routes/listings');
 const offerRoutes = require('./routes/offers');
+const ratingRoutes = require('./routes/ratings');
+const farmerSearchRoutes = require('./routes/farmers');
+const orderRoutes = require('./routes/orders');
+const dashboardRoutes = require('./routes/dashboard');
 const { initDatabase } = require('./config/database');
 
 const app = express();
@@ -36,7 +40,7 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 dakika
-    max: 100, // IP başına maksimum 100 istek
+    max: 10000, // IP başına maksimum 100 istek
     message: 'Çok fazla istek gönderildi, lütfen daha sonra tekrar deneyin.'
 });
 app.use(limiter);
@@ -54,6 +58,10 @@ app.use('/api/farms', farmRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/listings', listingRoutes);
 app.use('/api/offers', offerRoutes);
+app.use('/api/ratings', ratingRoutes);
+app.use('/api/farmers', farmerSearchRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Ana route
 app.get('/', (req, res) => {
@@ -117,6 +125,27 @@ app.get('/', (req, res) => {
                 detail: 'GET /api/offers/:offerId',
                 respond: 'PUT /api/offers/:offerId/respond',
                 delete: 'DELETE /api/offers/:offerId'
+            },
+            ratings: {
+                add: 'POST /api/ratings/:listingId',
+                getStats: 'GET /api/ratings/:listingId',
+                checkByEmail: 'GET /api/ratings/:listingId/check?email=example@email.com'
+            },
+            farmers: {
+                search: 'GET /api/farmers/search',
+                detail: 'GET /api/farmers/:farmerId',
+                stats: 'GET /api/farmers/:farmerId/stats'
+            },
+            orders: {
+                create: 'POST /api/orders/:listingId',
+                myOrders: 'GET /api/orders/my',
+                farmerOrders: 'GET /api/orders/farmer',
+                detail: 'GET /api/orders/:orderId',
+                updateStatus: 'PUT /api/orders/:orderId/status',
+                updatePayment: 'PUT /api/orders/:orderId/payment'
+            },
+            dashboard: {
+                getDashboard: 'GET /api/dashboard'
             }
         }
     });

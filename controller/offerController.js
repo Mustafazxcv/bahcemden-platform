@@ -357,6 +357,12 @@ const getOfferById = async (req, res) => {
     try {
         const { offerId } = req.params;
         const userId = req.user.userId;
+        
+        // Parametre doğrulama: offerId sayısal olmalı
+        const offerIdNum = parseInt(offerId, 10);
+        if (!Number.isInteger(offerIdNum) || offerIdNum <= 0) {
+            return res.status(400).json({ error: 'Geçersiz teklif ID' });
+        }
 
         const result = await pool.query(
             `SELECT o.*, l.product_type, l.quantity, l.unit, l.price as listing_price,
@@ -370,7 +376,7 @@ const getOfferById = async (req, res) => {
              JOIN users u1 ON o.buyer_id = u1.id
              JOIN users u2 ON l.farmer_id = u2.id
              WHERE o.id = $1 AND (o.buyer_id = $2 OR l.farmer_id = $2)`,
-            [offerId, userId]
+            [offerIdNum, userId]
         );
 
         if (result.rows.length === 0) {
